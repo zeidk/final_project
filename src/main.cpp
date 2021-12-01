@@ -33,7 +33,7 @@ void broadcast() {
 
 void listen(tf2_ros::Buffer& tfBuffer) {
   //for listener
-  
+
   geometry_msgs::TransformStamped transformStamped;
   try {
     transformStamped = tfBuffer.lookupTransform("map", "my_frame", ros::Time(0));
@@ -55,6 +55,9 @@ void listen(tf2_ros::Buffer& tfBuffer) {
 
 int main(int argc, char** argv)
 {
+  bool explorer_goal_sent = false;
+  bool follower_goal_sent = false;
+
   ros::init(argc, argv, "simple_navigation_goals");
   ros::NodeHandle nh;
 
@@ -89,11 +92,10 @@ int main(int argc, char** argv)
   follower_goal.target_pose.pose.position.y = -1.282680;//
   follower_goal.target_pose.pose.orientation.w = 1.0;
 
-  ROS_INFO("Sending goal");
-  explorer_client.sendGoal(explorer_goal);
+
   // explorer_client.waitForResult();
 
-  ROS_INFO("Sending goal");
+  // ROS_INFO("Sending goal");
   // follower_client.sendGoal(follower_goal);
   // explorer_client.waitForResult();
 
@@ -103,15 +105,25 @@ int main(int argc, char** argv)
   ros::Rate loop_rate(10);
 
   while (ros::ok()) {
+    if (!explorer_goal_sent)     {
+      ROS_INFO("Sending goal for explorer");
+      explorer_client.sendGoal(explorer_goal);//this should be sent only once
+      explorer_goal_sent = true;
+    }
     if (explorer_client.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
       ROS_INFO("Hooray, robot reached goal");
     }
-
+    if (!follower_goal_sent) {
+      ROS_INFO("Sending goal for explorer");
+      follower_client.sendGoal(follower_goal);//this should be sent only once
+      follower_goal_sent = true;
+    }
     if (follower_client.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
       ROS_INFO("Hooray, robot reached goal");
     }
     broadcast();
     listen(tfBuffer);
+    //ros::spinOnce(); //uncomment this if you have subscribers in your code
     loop_rate.sleep();
   }
 
